@@ -1,10 +1,57 @@
+"use client";
+
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { api } from "~/trpc/react";
 
 export default function CreateRoom() {
+  const router = useRouter();
+  const [formData, setFormData] = useState({
+    roomName: "",
+    maxPlayers: "3",
+  });
+
+  const createRoomMutation = api.room.createRoom.useMutation({
+    onSuccess: (data) => {
+      router.push(
+        `/lobby?roomId=${data.roomId}&roomName=${encodeURIComponent(data.roomName)}&maxPlayers=${data.maxPlayers}&hostName=${encodeURIComponent(data.hostName)}&hostId=${data.hostId}&isHost=true`,
+      );
+    },
+    onError: (error) => {
+      alert(`Failed to create room: ${error.message}`);
+    },
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+
+    console.log("Submitting form with data:", formData);
+    console.log("Calling createRoomMutation.mutate with:", {
+      roomName: formData.roomName,
+      maxPlayers: parseInt(formData.maxPlayers),
+      hostName: formData.roomName, // Using room name as host name for now
+    });
+
+    createRoomMutation.mutate({
+      roomName: formData.roomName,
+      maxPlayers: parseInt(formData.maxPlayers),
+      hostName: formData.roomName, // Using room name as host name for now
+    });
+  };
+
+  const handleInputChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
+  ) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value,
+    });
+  };
+
   return (
     <main className="min-h-screen bg-gradient-to-br from-amber-800 via-amber-900 to-orange-950">
       <div className="container mx-auto px-4 py-16">
-        {/* Back Button */}
         <div className="mb-8">
           <Link
             href="/"
@@ -41,7 +88,7 @@ export default function CreateRoom() {
               </p>
             </div>
 
-            <form className="space-y-6">
+            <form onSubmit={handleSubmit} className="space-y-6">
               <div>
                 <label
                   htmlFor="roomName"
@@ -52,8 +99,12 @@ export default function CreateRoom() {
                 <input
                   type="text"
                   id="roomName"
+                  name="roomName"
+                  value={formData.roomName}
+                  onChange={handleInputChange}
                   placeholder="Name your survivor camp..."
                   className="w-full rounded-lg border-2 border-amber-300 bg-amber-100/50 px-4 py-3 text-amber-900 placeholder-amber-600 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 focus:outline-none"
+                  required
                 />
               </div>
 
@@ -66,6 +117,9 @@ export default function CreateRoom() {
                 </label>
                 <select
                   id="maxPlayers"
+                  name="maxPlayers"
+                  value={formData.maxPlayers}
+                  onChange={handleInputChange}
                   className="w-full rounded-lg border-2 border-amber-300 bg-amber-100/50 px-4 py-3 text-amber-900 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 focus:outline-none"
                 >
                   <option value="3">3 Survivors</option>

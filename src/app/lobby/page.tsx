@@ -9,6 +9,7 @@ function LobbyContent() {
   const [copied, setCopied] = useState(false);
   const [showCountdown, setShowCountdown] = useState(false);
   const [countdown, setCountdown] = useState(3);
+  const [showVideo, setShowVideo] = useState(false);
 
   const searchParamsObj = useSearchParams();
   const roomId = searchParamsObj.get("roomId");
@@ -55,6 +56,7 @@ function LobbyContent() {
           if (prev <= 1) {
             clearInterval(countdownTimer);
             console.log("Game starting!");
+            setShowVideo(true);
             return 0;
           }
           return prev - 1;
@@ -132,6 +134,34 @@ function LobbyContent() {
           </div>
         )}
 
+        {showVideo && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black">
+            <video
+              autoPlay
+              className="h-full w-full object-cover"
+              onEnded={() => {}}
+            >
+              <source src="/video.mp4" type="video/mp4" />
+              Your browser does not support the video tag.
+            </video>
+
+            <div className="absolute bottom-8 left-1/2 -translate-x-1/2 transform">
+              <button
+                onClick={() => {
+                  setShowVideo(false);
+
+                  if (roomId && roomName) {
+                    window.location.href = `/game?roomId=${roomId}&roomName=${encodeURIComponent(roomName)}`;
+                  }
+                }}
+                className="rounded-lg border-2 border-amber-400 bg-amber-600/80 px-8 py-4 text-xl font-bold text-amber-50 backdrop-blur-sm transition-all duration-300 hover:scale-105 hover:bg-amber-600 hover:shadow-xl"
+              >
+                ▶️ Continue to Game
+              </button>
+            </div>
+          </div>
+        )}
+
         <div className="mb-16 text-center">
           <h1
             className="animate-slide-in-from-left mb-6 text-6xl font-bold tracking-tight text-amber-50 drop-shadow-2xl md:text-7xl"
@@ -178,7 +208,7 @@ function LobbyContent() {
               {room?.players.find((p) => p.isHost) && (
                 <div className="mb-4 flex items-center justify-center gap-3 rounded-lg bg-amber-200/50 p-4">
                   <div className="text-2xl">👑</div>
-                  <div className="text-left">
+                  <div className="flex-1 text-left">
                     <p className="font-semibold text-amber-900">
                       {room.players.find((p) => p.isHost)?.name} (Camp Leader)
                     </p>
@@ -199,7 +229,7 @@ function LobbyContent() {
                     className="mb-4 flex items-center justify-center gap-3 rounded-lg bg-amber-200/50 p-4"
                   >
                     <div className="text-2xl">👤</div>
-                    <div className="text-left">
+                    <div className="flex-1 text-left">
                       <p className="font-semibold text-amber-900">
                         {player.name}
                       </p>

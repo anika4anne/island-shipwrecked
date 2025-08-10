@@ -10,6 +10,7 @@ export default function JoinRoom() {
   const [formData, setFormData] = useState({
     roomCode: "",
     playerName: "",
+    playerGender: "male" as "male" | "female",
   });
 
   const joinRoomMutation = api.room.joinRoom.useMutation({
@@ -37,6 +38,7 @@ export default function JoinRoom() {
     joinRoomMutation.mutate({
       roomId: formData.roomCode,
       playerName: formData.playerName,
+      playerGender: formData.playerGender,
     });
   };
 
@@ -109,6 +111,30 @@ export default function JoinRoom() {
                   placeholder="Enter your survivor name"
                   required
                 />
+              </div>
+
+              <div>
+                <label
+                  htmlFor="playerGender"
+                  className="mb-2 block text-lg font-semibold text-amber-900"
+                >
+                  👤 Your Gender
+                </label>
+                <select
+                  id="playerGender"
+                  name="playerGender"
+                  value={formData.playerGender}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      playerGender: e.target.value as "male" | "female",
+                    })
+                  }
+                  className="w-full rounded-lg border-2 border-amber-300 bg-amber-100 px-4 py-3 text-lg font-semibold text-amber-900 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 focus:outline-none"
+                >
+                  <option value="male">Male</option>
+                  <option value="female">Female</option>
+                </select>
               </div>
 
               <button

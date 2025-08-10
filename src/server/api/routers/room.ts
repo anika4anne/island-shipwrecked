@@ -98,16 +98,18 @@ class RoomManager {
   }
 }
 
+// Create a single instance that persists across requests
+// Use global to ensure persistence in Next.js development mode
 declare global {
   var roomManager: RoomManager | undefined;
 }
 
-let roomManager: RoomManager;
-
-if (typeof global.roomManager === "undefined") {
-  global.roomManager = new RoomManager();
-}
-roomManager = global.roomManager;
+const roomManager: RoomManager = (() => {
+  if (typeof global.roomManager === "undefined") {
+    global.roomManager = new RoomManager();
+  }
+  return global.roomManager;
+})();
 
 export const roomRouter = createTRPCRouter({
   createRoom: publicProcedure

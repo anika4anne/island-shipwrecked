@@ -2,10 +2,10 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { api } from "~/trpc/react";
 
-export default function Lobby() {
+function LobbyContent() {
   const [copied, setCopied] = useState(false);
   const [showCountdown, setShowCountdown] = useState(false);
   const [countdown, setCountdown] = useState(3);
@@ -193,7 +193,7 @@ export default function Lobby() {
 
               {room?.players
                 .filter((p) => !p.isHost)
-                .map((player, index) => (
+                .map((player, _index) => (
                   <div
                     key={player.id}
                     className="mb-4 flex items-center justify-center gap-3 rounded-lg bg-amber-200/50 p-4"
@@ -317,5 +317,23 @@ export default function Lobby() {
         </div>
       </div>
     </main>
+  );
+}
+
+export default function Lobby() {
+  return (
+    <Suspense
+      fallback={
+        <main className="min-h-screen bg-gradient-to-br from-amber-800 via-amber-900 to-orange-950">
+          <div className="container mx-auto px-4 py-16">
+            <div className="text-center">
+              <h1 className="text-4xl font-bold text-amber-50">Loading...</h1>
+            </div>
+          </div>
+        </main>
+      }
+    >
+      <LobbyContent />
+    </Suspense>
   );
 }

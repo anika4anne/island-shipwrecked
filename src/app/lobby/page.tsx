@@ -10,34 +10,29 @@ export default function Lobby() {
   const [showCountdown, setShowCountdown] = useState(false);
   const [countdown, setCountdown] = useState(3);
 
-
   const searchParamsObj = useSearchParams();
   const roomId = searchParamsObj.get("roomId");
   const roomName = searchParamsObj.get("roomName");
-  const maxPlayers = parseInt(searchParamsObj.get("maxPlayers") || "3");
-  const hostName = searchParamsObj.get("hostName");
-  const hostId = searchParamsObj.get("hostId");
+  const maxPlayers = parseInt(searchParamsObj.get("maxPlayers") ?? "3");
   const playerId = searchParamsObj.get("playerId");
   const isHost = searchParamsObj.get("isHost") === "true";
-
 
   const { data: room, refetch: refetchRoom } = api.room.getRoom.useQuery(
     { roomId: roomId! },
     {
       enabled: !!roomId,
-      refetchInterval: 1000, 
+      refetchInterval: 1000,
+    },
   );
 
-
   const startGameMutation = api.room.startGame.useMutation({
-    onSuccess: () => {
-      refetchRoom(); 
+    onSuccess: async () => {
+      await refetchRoom();
     },
     onError: (error) => {
       alert(`Failed to start game: ${error.message}`);
     },
   });
-
 
   const leaveRoomMutation = api.room.leaveRoom.useMutation({
     onSuccess: () => {
@@ -48,21 +43,18 @@ export default function Lobby() {
     },
   });
 
-
   const currentIsHost = room?.hostId === playerId || isHost;
-  const playerCount = room?.players.length || 0;
-
+  const playerCount = room?.players.length ?? 0;
 
   useEffect(() => {
     if (room?.gameStarted) {
       setShowCountdown(true);
 
-
       const countdownTimer = setInterval(() => {
         setCountdown((prev) => {
           if (prev <= 1) {
             clearInterval(countdownTimer);
-                     console.log("Game starting!");
+            console.log("Game starting!");
             return 0;
           }
           return prev - 1;
@@ -116,7 +108,6 @@ export default function Lobby() {
   return (
     <main className="min-h-screen bg-gradient-to-br from-amber-800 via-amber-900 to-orange-950">
       <div className="container mx-auto px-4 py-16">
-    
         <div className="mb-8">
           <Link
             href="/create-room"
@@ -125,7 +116,6 @@ export default function Lobby() {
             ← Back to Create Room
           </Link>
         </div>
-
 
         {showCountdown && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80">
@@ -155,7 +145,6 @@ export default function Lobby() {
         </div>
 
         <div className="mx-auto max-w-4xl">
- 
           <div className="mb-8 rounded-2xl border-4 border-amber-800 bg-amber-50/90 p-6 shadow-2xl backdrop-blur-sm">
             <div className="text-center">
               <h2 className="mb-4 text-3xl font-bold text-amber-900">
@@ -166,7 +155,7 @@ export default function Lobby() {
                   <h3 className="mb-2 text-lg font-semibold text-amber-800">
                     🏕️ Camp Name
                   </h3>
-                  <p className="text-amber-900">{roomName || "Loading..."}</p>
+                  <p className="text-amber-900">{roomName ?? "Loading..."}</p>
                 </div>
                 <div className="rounded-lg bg-amber-100/50 p-4">
                   <h3 className="mb-2 text-lg font-semibold text-amber-800">
@@ -180,14 +169,12 @@ export default function Lobby() {
             </div>
           </div>
 
-  
           <div className="mb-8 rounded-2xl border-4 border-amber-800 bg-amber-50/90 p-6 shadow-2xl backdrop-blur-sm">
             <div className="text-center">
               <h2 className="mb-6 text-3xl font-bold text-amber-900">
                 Current Survivors
               </h2>
 
-            
               {room?.players.find((p) => p.isHost) && (
                 <div className="mb-4 flex items-center justify-center gap-3 rounded-lg bg-amber-200/50 p-4">
                   <div className="text-2xl">👑</div>
@@ -204,7 +191,6 @@ export default function Lobby() {
                 </div>
               )}
 
-       
               {room?.players
                 .filter((p) => !p.isHost)
                 .map((player, index) => (
@@ -226,14 +212,13 @@ export default function Lobby() {
                   </div>
                 ))}
 
-      
               {playerCount < maxPlayers && (
                 <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                   {Array.from(
                     { length: maxPlayers - playerCount },
-                    (_, index) => (
+                    (_, _index) => (
                       <div
-                        key={`empty-${index}`}
+                        key={`empty-${_index}`}
                         className="flex items-center gap-3 rounded-lg border-2 border-dashed border-amber-300 bg-amber-100/30 p-4"
                       >
                         <div className="text-2xl">👤</div>
@@ -242,7 +227,7 @@ export default function Lobby() {
                             Waiting for survivor...
                           </p>
                           <p className="text-sm text-amber-600">
-                            Slot {playerCount + index + 1}
+                            Slot {playerCount + _index + 1}
                           </p>
                         </div>
                       </div>
@@ -253,7 +238,6 @@ export default function Lobby() {
             </div>
           </div>
 
-         
           <div className="mb-8 rounded-2xl border-4 border-amber-800 bg-amber-50/90 p-6 shadow-2xl backdrop-blur-sm">
             <div className="text-center">
               <h2 className="mb-4 text-3xl font-bold text-amber-900">
@@ -265,7 +249,7 @@ export default function Lobby() {
               <div className="mx-auto max-w-xs">
                 <div className="rounded-lg border-2 border-amber-400 bg-amber-200 p-4">
                   <p className="font-mono text-3xl font-bold tracking-widest text-amber-900">
-                    {roomId || "Loading..."}
+                    {roomId ?? "Loading..."}
                   </p>
                 </div>
                 <div className="mt-3">
@@ -286,7 +270,6 @@ export default function Lobby() {
               </div>
             </div>
           </div>
-
 
           <div className="text-center">
             {canStartGame ? (

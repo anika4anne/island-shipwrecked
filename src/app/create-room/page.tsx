@@ -15,7 +15,7 @@ export default function CreateRoom() {
   const createRoomMutation = api.room.createRoom.useMutation({
     onSuccess: (data) => {
       router.push(
-        `/lobby?roomId=${data.roomId}&roomName=${encodeURIComponent(data.roomName)}&maxPlayers=${data.maxPlayers}&hostName=${encodeURIComponent(data.hostName)}&hostId=${data.hostId}&isHost=true`,
+        `/lobby?roomId=${data.roomId}&roomName=${encodeURIComponent(data.roomName)}&maxPlayers=${data.maxPlayers}&hostName=${encodeURIComponent(data.hostName)}&hostId=${data.hostId}&playerId=${data.hostId}&isHost=true`,
       );
     },
     onError: (error) => {
@@ -66,12 +66,12 @@ export default function CreateRoom() {
             className="animate-slide-in-from-left mb-6 text-6xl font-bold tracking-tight text-amber-50 drop-shadow-2xl md:text-7xl"
             style={{ fontFamily: "Canterbury, serif" }}
           >
-            🗺️ Survivor's Camp 🗺️
+            🗺️ Survivor&apos;s Camp 🗺️
           </h1>
           <p className="animate-slide-in-from-right mx-auto mb-8 max-w-3xl text-xl text-amber-50 drop-shadow-lg md:text-2xl">
             After the storm, you found yourself on this mysterious island. The
-            map you discovered shows an X marking treasure - but you'll need
-            help to find it.
+            map you discovered shows an X marking treasure - but you&apos;ll
+            need help to find it.
           </p>
         </div>
 

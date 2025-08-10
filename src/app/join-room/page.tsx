@@ -16,7 +16,7 @@ export default function JoinRoom() {
     onSuccess: (data) => {
       if (data.room) {
         router.push(
-          `/lobby?roomId=${formData.roomCode}&roomName=${encodeURIComponent(data.room.name)}&maxPlayers=${data.room.maxPlayers}&hostName=${encodeURIComponent(data.room.players[0]?.name || "")}&playerId=${data.playerId}&isHost=false`,
+          `/lobby?roomId=${formData.roomCode}&roomName=${encodeURIComponent(data.room.name)}&maxPlayers=${data.room.maxPlayers}&hostName=${encodeURIComponent(data.room.players[0]?.name ?? "")}&playerId=${data.playerId}&isHost=false`,
         );
       }
     },

@@ -40,7 +40,6 @@ class RoomManager {
       gameStarted: false,
       hostId,
     };
-
     this.rooms.set(roomId, room);
     return room;
   }
@@ -54,7 +53,6 @@ class RoomManager {
     if (!room || room.players.length >= room.maxPlayers || room.gameStarted) {
       return false;
     }
-
     room.players.push(player);
     return true;
   }
@@ -79,7 +77,6 @@ class RoomManager {
         this.rooms.delete(roomId);
       }
     }
-
     return true;
   }
 
@@ -88,7 +85,6 @@ class RoomManager {
     if (!room || room.hostId !== hostId || room.gameStarted) {
       return false;
     }
-
     room.gameStarted = true;
     return true;
   }
@@ -96,9 +92,22 @@ class RoomManager {
   deleteRoom(roomId: string): boolean {
     return this.rooms.delete(roomId);
   }
+
+  getDebugInfo(): string {
+    return `Total rooms: ${this.rooms.size}`;
+  }
 }
 
-export const roomManager = new RoomManager();
+declare global {
+  var roomManager: RoomManager | undefined;
+}
+
+let roomManager: RoomManager;
+
+if (typeof global.roomManager === "undefined") {
+  global.roomManager = new RoomManager();
+}
+roomManager = global.roomManager;
 
 export const roomRouter = createTRPCRouter({
   createRoom: publicProcedure
@@ -110,16 +119,23 @@ export const roomRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ input }) => {
+      console.log("createRoom called with input:", input);
+
       const roomId = Math.random().toString(36).substring(2, 8).toUpperCase();
       const hostId = Math.random().toString(36).substring(2, 15);
 
-      roomManager.createRoom(
+      console.log("Generated roomId:", roomId, "hostId:", hostId);
+
+      const room = roomManager.createRoom(
         roomId,
         input.roomName,
         input.maxPlayers,
         hostId,
         input.hostName,
       );
+
+      console.log("Created room:", room);
+      console.log("All rooms in manager:", roomManager.getDebugInfo());
 
       return {
         roomId,
@@ -137,8 +153,12 @@ export const roomRouter = createTRPCRouter({
       }),
     )
     .query(async ({ input }) => {
+      console.log("getRoom called with roomId:", input.roomId);
+      console.log("RoomManager instance:", roomManager);
+      console.log("Total rooms in manager:", roomManager.getDebugInfo());
       const room = roomManager.getRoom(input.roomId);
-      return room || null;
+      console.log("Room found:", room);
+      return room ?? null;
     }),
 
   joinRoom: publicProcedure
@@ -149,8 +169,11 @@ export const roomRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ input }) => {
+      console.log("joinRoom called with input:", input);
+
       const room = roomManager.getRoom(input.roomId);
       if (!room) {
+        console.log("Room not found for roomId:", input.roomId);
         throw new Error("Room not found");
       }
 
@@ -188,10 +211,16 @@ export const roomRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ input }) => {
+      console.log("startGame called with:", input);
+      const room = roomManager.getRoom(input.roomId);
+      console.log("Room before startGame:", room);
+
       if (roomManager.startGame(input.roomId, input.hostId)) {
+        const updatedRoom = roomManager.getRoom(input.roomId);
+        console.log("Room after startGame:", updatedRoom);
         return {
           success: true,
-          room: roomManager.getRoom(input.roomId),
+          room: updatedRoom,
         };
       } else {
         throw new Error("Only host can start the game");

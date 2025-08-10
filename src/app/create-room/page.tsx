@@ -4,6 +4,16 @@ export default function CreateRoom() {
   return (
     <main className="min-h-screen bg-gradient-to-br from-amber-800 via-amber-900 to-orange-950">
       <div className="container mx-auto px-4 py-16">
+        {/* Back Button */}
+        <div className="mb-8">
+          <Link
+            href="/"
+            className="inline-flex items-center gap-2 text-lg text-amber-50 drop-shadow-lg transition-colors duration-200 hover:text-amber-100"
+          >
+            ← Back to Island
+          </Link>
+        </div>
+
         <div className="mb-16 text-center">
           <h1
             className="animate-slide-in-from-left mb-6 text-6xl font-bold tracking-tight text-amber-50 drop-shadow-2xl md:text-7xl"

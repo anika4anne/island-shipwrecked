@@ -1,53 +1,63 @@
 import Link from "next/link";
 
-import { LatestPost } from "~/app/_components/post";
-import { api, HydrateClient } from "~/trpc/server";
-
-export default async function Home() {
-  const hello = await api.post.hello({ text: "from tRPC" });
-
-  void api.post.getLatest.prefetch();
-
+export default function Home() {
   return (
-    <HydrateClient>
-      <main className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-b from-[#2e026d] to-[#15162c] text-white">
-        <div className="container flex flex-col items-center justify-center gap-12 px-4 py-16">
-          <h1 className="text-5xl font-extrabold tracking-tight sm:text-[5rem]">
-            Create <span className="text-[hsl(280,100%,70%)]">T3</span> App
+    <main
+      className="min-h-screen bg-cover bg-center bg-no-repeat"
+      style={{ backgroundImage: "url(/home.jpg)" }}
+    >
+      <div className="container mx-auto px-4 py-16">
+        <div className="mb-16 text-center">
+          <h1
+            className="animate-slide-in-from-left mb-6 text-8xl font-bold tracking-tight text-amber-50 drop-shadow-2xl md:text-9xl lg:text-[10rem]"
+            style={{ fontFamily: "Canterbury, serif" }}
+          >
+            Welcome to this Island
           </h1>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:gap-8">
-            <Link
-              className="flex max-w-xs flex-col gap-4 rounded-xl bg-white/10 p-4 hover:bg-white/20"
-              href="https://create.t3.gg/en/usage/first-steps"
-              target="_blank"
+          <p
+            className="animate-slide-in-from-right mx-auto mb-8 max-w-3xl text-xl text-amber-900 drop-shadow-lg md:text-2xl"
+            style={{ fontFamily: "Canterbury, serif" }}
+          >
+            Stranded on a mysterious island, you must work together with other
+            survivors to find the hidden treasure marked by X on your map
+          </p>
+
+          <div className="animate-bounce-in mb-12">
+            <div className="mb-4 text-6xl drop-shadow-2xl">🏝️</div>
+            <p
+              className="text-lg font-medium text-amber-100 drop-shadow-lg"
+              style={{ fontFamily: "Canterbury, serif" }}
             >
-              <h3 className="text-2xl font-bold">First Steps →</h3>
-              <div className="text-lg">
-                Just the basics - Everything you need to know to set up your
-                database and authentication.
-              </div>
-            </Link>
-            <Link
-              className="flex max-w-xs flex-col gap-4 rounded-xl bg-white/10 p-4 hover:bg-white/20"
-              href="https://create.t3.gg/en/introduction"
-              target="_blank"
-            >
-              <h3 className="text-2xl font-bold">Documentation →</h3>
-              <div className="text-lg">
-                Learn more about Create T3 App, the libraries it uses, and how
-                to deploy it.
-              </div>
-            </Link>
-          </div>
-          <div className="flex flex-col items-center gap-2">
-            <p className="text-2xl text-white">
-              {hello ? hello.greeting : "Loading tRPC query..."}
+              The treasure awaits, but only together can you find it...
             </p>
           </div>
 
-          <LatestPost />
+          <div className="animate-slide-up flex flex-col items-center justify-center gap-6 sm:flex-row">
+            <Link
+              href="/create-room"
+              className="group transform rounded-full bg-gradient-to-r from-amber-700 to-orange-700 px-8 py-4 text-lg font-bold text-amber-50 shadow-lg transition-all duration-300 hover:scale-105 hover:from-amber-800 hover:to-orange-800 hover:shadow-xl"
+            >
+              <span className="flex items-center gap-2">
+                🏠 Create Private Room
+                <span className="transition-transform duration-200 group-hover:translate-x-1">
+                  →
+                </span>
+              </span>
+            </Link>
+            <Link
+              href="/join-room"
+              className="group transform rounded-full bg-gradient-to-r from-amber-600 to-orange-600 px-8 py-4 text-lg font-bold text-amber-50 shadow-lg transition-all duration-300 hover:scale-105 hover:from-amber-700 hover:to-orange-700 hover:shadow-xl"
+            >
+              <span className="flex items-center gap-2">
+                🔑 Enter Code
+                <span className="transition-transform duration-200 group-hover:translate-x-1">
+                  →
+                </span>
+              </span>
+            </Link>
+          </div>
         </div>
-      </main>
-    </HydrateClient>
+      </div>
+    </main>
   );
 }

@@ -10,8 +10,7 @@ export default function JoinRoom() {
   const [formData, setFormData] = useState({
     roomCode: "",
     playerName: "",
-    playerGender: "male" as "male" | "female",
-    playerCharacter: "mickey" as string, // Add character selection
+    playerCharacter: "mickey" as string,
   });
 
   const joinRoomMutation = api.room.joinRoom.useMutation({
@@ -34,15 +33,13 @@ export default function JoinRoom() {
     console.log("Calling joinRoomMutation.mutate with:", {
       roomId: formData.roomCode,
       playerName: formData.playerName,
-      playerGender: formData.playerGender,
-      playerCharacter: formData.playerCharacter, // Add character
+      playerCharacter: formData.playerCharacter,
     });
 
     joinRoomMutation.mutate({
       roomId: formData.roomCode,
       playerName: formData.playerName,
-      playerGender: formData.playerGender,
-      playerCharacter: formData.playerCharacter, // Add character
+      playerCharacter: formData.playerCharacter,
     });
   };
 
@@ -119,30 +116,6 @@ export default function JoinRoom() {
 
               <div>
                 <label
-                  htmlFor="playerGender"
-                  className="mb-2 block text-lg font-semibold text-amber-900"
-                >
-                  👤 Your Gender
-                </label>
-                <select
-                  id="playerGender"
-                  name="playerGender"
-                  value={formData.playerGender}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      playerGender: e.target.value as "male" | "female",
-                    })
-                  }
-                  className="w-full rounded-lg border-2 border-amber-300 bg-amber-100 px-4 py-3 text-lg font-semibold text-amber-900 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 focus:outline-none"
-                >
-                  <option value="male">Male</option>
-                  <option value="female">Female</option>
-                </select>
-              </div>
-
-              <div>
-                <label
                   htmlFor="playerCharacter"
                   className="mb-2 block text-lg font-semibold text-amber-900"
                 >
@@ -161,7 +134,12 @@ export default function JoinRoom() {
                   className="w-full rounded-lg border-2 border-amber-300 bg-amber-100 px-4 py-3 text-lg font-semibold text-amber-900 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 focus:outline-none"
                 >
                   <option value="mickey">🐭 Mickey</option>
-                  {/* Add more characters here as you create them */}
+                  <option value="minnie">🐭 Minnie</option>
+                  <option value="garfield">🐱 Garfield</option>
+                  <option value="phineas">🧑‍🦰 Phineas</option>
+                  <option value="tall">🧍 Tall</option>
+                  <option value="jerry">🐭 Jerry</option>
+                  <option value="dog">🐕 Dog</option>
                 </select>
               </div>
 

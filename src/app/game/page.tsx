@@ -4,17 +4,17 @@ import { useSearchParams } from "next/navigation";
 import { useState, useEffect, Suspense, useCallback } from "react";
 import { api } from "~/trpc/react";
 
-interface Player {
+interface GamePlayer {
   id: string;
   name: string;
   isHost: boolean;
+  character: string;
   x: number;
   y: number;
   coins: number;
   direction: "left" | "right";
   isMoving: boolean;
   isJumping: boolean;
-  character: string;
 }
 
 interface Coin {
@@ -32,63 +32,40 @@ interface Platform {
   height: number;
 }
 
-interface GameState {
-  players: Player[];
-  coins: Coin[];
-  platforms: Platform[];
-  treasureChest: { x: number; y: number };
-  gameStarted: boolean;
-  timeLeft: number;
-  gameWon: boolean;
-  gameLost: boolean;
-}
-
 function GameCharacter({
   player,
   isCurrentPlayer,
 }: {
-  player: Player;
+  player: GamePlayer;
   isCurrentPlayer: boolean;
 }) {
   return (
     <div
-      className={`absolute transition-all duration-100 ${
+      className={`absolute transition-all duration-200 ${
         isCurrentPlayer ? "ring-opacity-80 ring-4 ring-yellow-400" : ""
-      }`}
+      } ${player.isMoving ? "scale-110 animate-pulse" : ""}`}
       style={{
         left: player.x - 25,
-        top: player.y - 40,
+        top: 700 - player.y,
         transform: `scaleX(${player.direction === "left" ? -1 : 1})`,
       }}
     >
-      <div className="relative">
-        <img
-          src={`/characters/${player.character}.svg`}
-          alt={player.character}
-          className="h-20 w-20 drop-shadow-lg"
-          onError={(e) => {
-            const target = e.target as HTMLImageElement;
-            target.style.display = "none";
-            const fallback = document.createElement("div");
-            fallback.className =
-              "h-20 w-20 text-6xl flex items-center justify-center";
-            fallback.textContent = player.isHost ? "👑" : "🐹";
-            target.parentNode?.appendChild(fallback);
-          }}
-        />
-
-        {player.isJumping && (
-          <div className="absolute -top-2 left-1/2 -translate-x-1/2 transform rounded bg-black/50 px-1 py-0.5 text-xs text-white">
-            ↑
-          </div>
-        )}
+      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-red-400 to-red-600 text-2xl shadow-lg">
+        {player.character === "mickey" && "🐭"}
+        {player.character === "minnie" && "🐭"}
+        {player.character === "garfield" && "🐱"}
+        {player.character === "phineas" && "🧑‍🦰"}
+        {player.character === "tall" && "🧍"}
+        {player.character === "jerry" && "🐭"}
+        {player.character === "dog" && "🐕"}
       </div>
 
+      {/* Player name and status */}
       <div className="mt-2 text-center">
         <div className="rounded-lg border border-white/20 bg-black/50 px-2 py-1 text-center text-xs text-white backdrop-blur-sm">
           {player.name}
         </div>
-        <div className="mt-1 rounded-lg border border-white/20 bg-black/50 px-2 py-1 text-center text-xs text-white backdrop-blur-sm">
+        <div className="mt-1 rounded-lg border border-white/20 bg-black/50 px-3 py-1 text-center text-xs text-white backdrop-blur-sm">
           {player.coins} 🪙
         </div>
       </div>
@@ -99,303 +76,183 @@ function GameCharacter({
 function GameContent() {
   const searchParamsObj = useSearchParams();
   const roomId = searchParamsObj.get("roomId");
-  const roomName = searchParamsObj.get("roomName");
   const playerId = searchParamsObj.get("playerId");
 
   const { data: room } = api.room.getRoom.useQuery(
     { roomId: roomId! },
     {
       enabled: !!roomId,
-      refetchInterval: 1000,
+      refetchInterval: 100,
     },
   );
 
-  const [gameState, setGameState] = useState<GameState>({
-    players: [],
-    coins: [],
-    platforms: [],
-    treasureChest: { x: 400, y: 300 },
-    gameStarted: false,
-    timeLeft: 120,
-    gameWon: false,
-    gameLost: false,
+  const updatePlayerPosition = api.room.updatePlayerPosition.useMutation({
+    onSuccess: (data) => {
+      console.log("Position update successful:", data);
+    },
+    onError: (error) => {
+      console.error("Position update failed:", error);
+    },
   });
+  const collectCoin = api.room.collectCoin.useMutation();
+  const checkTreasureWin = api.room.checkTreasureWin.useMutation();
+  const updateGameTime = api.room.updateGameTime.useMutation();
 
-  const [currentPlayer, setCurrentPlayer] = useState<Player | null>(null);
+  const [currentPlayer, setCurrentPlayer] = useState<GamePlayer | null>(null);
+
+  const gameState = room?.gameState;
 
   useEffect(() => {
-    if (room?.players && !gameState.gameStarted) {
-      const initialPlayers: Player[] = room.players.map((player, index) => ({
-        ...player,
-        x: 150 + index * 120,
-        y: window.innerHeight - 150,
-        coins: 0,
-        direction: "right" as const,
-        isMoving: false,
-        isJumping: false,
-        character: player.character || "mickey",
-      }));
+    if (gameState?.players) {
+      console.log(
+        "Server updated game state:",
+        gameState.players.map((p) => ({
+          id: p.id,
+          character: p.character,
+          x: p.x,
+          y: p.y,
+          direction: p.direction,
+        })),
+      );
+    }
+  }, [gameState?.players]);
 
-      const platforms: Platform[] = [
-        {
-          id: "ground",
-          x: 0,
-          y: window.innerHeight - 100,
-          width: window.innerWidth,
-          height: 100,
-        },
-
-        {
-          id: "platform1",
-          x: 100,
-          y: window.innerHeight - 200,
-          width: 150,
-          height: 25,
-        },
-        {
-          id: "platform2",
-          x: 50,
-          y: window.innerHeight - 300,
-          width: 150,
-          height: 25,
-        },
-        {
-          id: "platform3",
-          x: 150,
-          y: window.innerHeight - 400,
-          width: 150,
-          height: 25,
-        },
-
-        {
-          id: "platform4",
-          x: window.innerWidth - 250,
-          y: window.innerHeight - 200,
-          width: 150,
-          height: 25,
-        },
-        {
-          id: "platform5",
-          x: window.innerWidth - 200,
-          y: window.innerHeight - 300,
-          width: 150,
-          height: 25,
-        },
-        {
-          id: "platform6",
-          x: window.innerWidth - 150,
-          y: window.innerHeight - 400,
-          width: 150,
-          height: 25,
-        },
-
-        {
-          id: "platform7",
-          x: window.innerWidth / 2 - 75,
-          y: window.innerHeight - 250,
-          width: 150,
-          height: 25,
-        },
-        {
-          id: "platform8",
-          x: window.innerWidth / 2 - 75,
-          y: window.innerHeight - 350,
-          width: 150,
-          height: 25,
-        },
-      ];
-
-      const coins: Coin[] = [
-        { id: "coin-1", x: 175, y: window.innerHeight - 225, collected: false },
-        { id: "coin-2", x: 125, y: window.innerHeight - 325, collected: false },
-        { id: "coin-3", x: 225, y: window.innerHeight - 425, collected: false },
-        {
-          id: "coin-4",
-          x: window.innerWidth - 175,
-          y: window.innerHeight - 225,
-          collected: false,
-        },
-        {
-          id: "coin-5",
-          x: window.innerWidth - 125,
-          y: window.innerHeight - 325,
-          collected: false,
-        },
-        {
-          id: "coin-6",
-          x: window.innerWidth - 75,
-          y: window.innerHeight - 425,
-          collected: false,
-        },
-        {
-          id: "coin-7",
-          x: window.innerWidth / 2,
-          y: window.innerHeight - 275,
-          collected: false,
-        },
-        {
-          id: "coin-8",
-          x: window.innerWidth / 2,
-          y: window.innerHeight - 375,
-          collected: false,
-        },
-        { id: "coin-9", x: 200, y: window.innerHeight - 150, collected: false },
-        {
-          id: "coin-10",
-          x: window.innerWidth - 200,
-          y: window.innerHeight - 150,
-          collected: false,
-        },
-      ];
-
-      const treasureChest = {
-        x: window.innerWidth / 2,
-        y: window.innerHeight - 450,
-      };
-
-      setGameState((prev) => ({
-        ...prev,
-        players: initialPlayers,
-        coins,
-        platforms,
-        treasureChest,
-        gameStarted: true,
-      }));
-
-      const player = initialPlayers.find((p) => p.id === playerId);
-      if (player) {
-        setCurrentPlayer(player);
+  useEffect(() => {
+    if (room?.gameState?.players && playerId) {
+      const player = room.gameState.players.find((p) => p.id === playerId);
+      if (
+        player?.x !== undefined &&
+        player.y !== undefined &&
+        player.coins !== undefined &&
+        player.direction !== undefined &&
+        player.isMoving !== undefined &&
+        player.isJumping !== undefined
+      ) {
+        console.log("Updating current player:", {
+          id: player.id,
+          character: player.character,
+          x: player.x,
+          y: player.y,
+          direction: player.direction,
+        });
+        setCurrentPlayer(player as GamePlayer);
       }
     }
-  }, [room?.players, gameState.gameStarted, playerId]);
+  }, [room?.gameState?.players, playerId]);
 
   useEffect(() => {
     if (
-      gameState.gameStarted &&
+      room?.gameStarted &&
+      gameState?.timeLeft &&
       gameState.timeLeft > 0 &&
       !gameState.gameWon &&
       !gameState.gameLost
     ) {
       const timer = setInterval(() => {
-        setGameState((prev) => {
-          if (prev.timeLeft <= 1) {
-            return { ...prev, timeLeft: 0, gameLost: true };
-          }
-          return { ...prev, timeLeft: prev.timeLeft - 1 };
-        });
+        updateGameTime.mutate({ roomId: roomId! });
       }, 1000);
 
       return () => clearInterval(timer);
     }
   }, [
-    gameState.gameStarted,
-    gameState.timeLeft,
-    gameState.gameWon,
-    gameState.gameLost,
+    room?.gameStarted,
+    gameState?.timeLeft,
+    gameState?.gameWon,
+    gameState?.gameLost,
+    roomId,
+    updateGameTime,
   ]);
 
   const handleKeyDown = useCallback(
     (event: KeyboardEvent) => {
-      if (!currentPlayer || gameState.gameWon || gameState.gameLost) return;
+      if (
+        !currentPlayer ||
+        !gameState ||
+        gameState.gameWon ||
+        gameState.gameLost
+      )
+        return;
 
       const key = event.key.toLowerCase();
-      const moveDistance = 20;
-      const jumpForce = 30;
+      console.log("Key pressed:", key, "for player:", currentPlayer.character); // Debug log
 
-      setGameState((prev) => {
-        const newPlayers = prev.players.map((player) => {
-          if (player.id === currentPlayer.id) {
-            let newX = player.x;
-            let newY = player.y;
-            let newDirection = player.direction;
-            let isMoving = false;
-            let isJumping = false;
+      const moveDistance = 50;
+      const jumpForce = 50;
 
-            if (key === "w" || key === "arrowup" || key === " ") {
-              newY = Math.max(0, player.y - jumpForce);
-              isJumping = true;
-            } else if (key === "s" || key === "arrowdown") {
-              newY = Math.min(
-                window.innerHeight - 100,
-                player.y + moveDistance,
-              );
-              isMoving = true;
-            } else if (key === "a" || key === "arrowleft") {
-              newX = Math.max(0, player.x - moveDistance);
-              newDirection = "left";
-              isMoving = true;
-            } else if (key === "d" || key === "arrowright") {
-              newX = Math.min(window.innerWidth - 50, player.x + moveDistance);
-              newDirection = "right";
-              isMoving = true;
-            }
+      let newX = currentPlayer.x;
+      let newY = currentPlayer.y;
+      let newDirection = currentPlayer.direction;
+      let isMoving = false;
+      let isJumping = false;
 
-            const newCoins = prev.coins.map((coin) => {
-              if (
-                !coin.collected &&
-                Math.abs(newX - coin.x) < 30 &&
-                Math.abs(newY - coin.y) < 30
-              ) {
-                return { ...coin, collected: true };
-              }
-              return coin;
-            });
+      if (key === "w" || key === "arrowup" || key === " ") {
+        newY = Math.max(0, currentPlayer.y - jumpForce);
+        isJumping = true;
+        console.log("Jumping! New Y:", newY);
+        g;
+      } else if (key === "s" || key === "arrowdown") {
+        newY = Math.min(800, currentPlayer.y + moveDistance);
+        isMoving = true;
+        console.log("Moving down! New Y:", newY);
+      } else if (key === "a" || key === "arrowleft") {
+        newX = Math.max(0, currentPlayer.x - moveDistance);
+        newDirection = "left";
+        isMoving = true;
+        console.log("Moving left! New X:", newX); // Debug log
+      } else if (key === "d" || key === "arrowright") {
+        newX = Math.min(1200, currentPlayer.x + moveDistance);
+        newDirection = "right";
+        isMoving = true;
+        console.log("Moving right! New X:", newX); // Debug log
+      }
 
-            let gameWon = prev.gameWon;
-            if (
-              Math.abs(newX - prev.treasureChest.x) < 30 &&
-              Math.abs(newY - prev.treasureChest.y) < 30
-            ) {
-              gameWon = true;
-            }
+      console.log(
+        `Moving ${currentPlayer.character} from (${currentPlayer.x}, ${currentPlayer.y}) to (${newX}, ${newY})`,
+      );
 
-            const updatedPlayer = {
-              ...player,
-              x: newX,
-              y: newY,
-              direction: newDirection,
-              isMoving,
-              isJumping,
-            };
-
-            const newlyCollectedCoins = prev.coins.filter(
-              (c) =>
-                !c.collected &&
-                Math.abs(newX - c.x) < 30 &&
-                Math.abs(newY - c.y) < 30,
-            ).length;
-
-            updatedPlayer.coins += newlyCollectedCoins;
-
-            return updatedPlayer;
-          }
-          return player;
-        });
-
-        return {
-          ...prev,
-          players: newPlayers,
-          coins: prev.coins.map((coin) => {
-            if (
-              !coin.collected &&
-              Math.abs(
-                newPlayers.find((p) => p.id === currentPlayer.id)?.x ||
-                  0 - coin.x,
-              ) < 30 &&
-              Math.abs(
-                newPlayers.find((p) => p.id === currentPlayer.id)?.y ||
-                  0 - coin.y,
-              ) < 30
-            ) {
-              return { ...coin, collected: true };
-            }
-            return coin;
-          }),
-          gameWon: gameWon || prev.gameWon,
-        };
+      updatePlayerPosition.mutate({
+        roomId: roomId!,
+        playerId: currentPlayer.id,
+        x: newX,
+        y: newY,
+        direction: newDirection,
+        isMoving,
+        isJumping,
       });
+
+      gameState.coins.forEach((coin) => {
+        if (
+          !coin.collected &&
+          Math.abs(newX - coin.x) < 30 &&
+          Math.abs(newY - coin.y) < 30
+        ) {
+          collectCoin.mutate({
+            roomId: roomId!,
+            coinId: coin.id,
+            playerId: currentPlayer.id,
+          });
+        }
+      });
+
+      const treasure = gameState.treasureChest;
+      if (
+        Math.abs(newX - treasure.x) < 30 &&
+        Math.abs(newY - treasure.y) < 30
+      ) {
+        checkTreasureWin.mutate({
+          roomId: roomId!,
+          playerId: currentPlayer.id,
+        });
+      }
     },
-    [currentPlayer, gameState.gameWon, gameState.gameLost],
+    [
+      currentPlayer,
+      gameState,
+      roomId,
+      updatePlayerPosition,
+      collectCoin,
+      checkTreasureWin,
+    ],
   );
 
   useEffect(() => {
@@ -409,6 +266,16 @@ function GameContent() {
     return `${mins}:${secs.toString().padStart(2, "0")}`;
   };
 
+  if (!gameState) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-gradient-to-br from-sky-400 to-sky-600">
+        <div className="text-center text-white">
+          <h1 className="text-4xl font-bold">Loading Game...</h1>
+        </div>
+      </main>
+    );
+  }
+
   if (gameState.gameWon) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-gradient-to-br from-yellow-400 via-orange-500 to-red-500">
@@ -419,7 +286,7 @@ function GameContent() {
             Time remaining: {formatTime(gameState.timeLeft)}
           </p>
           <p className="mb-8 text-xl">
-            Coins collected: {currentPlayer?.coins || 0}
+            Coins collected: {currentPlayer?.coins ?? 0}
           </p>
           <button
             onClick={() => window.history.back()}
@@ -438,10 +305,10 @@ function GameContent() {
         <div className="text-center text-white">
           <h1 className="mb-8 text-6xl font-bold">💀 GAME OVER 💀</h1>
           <p className="mb-4 text-2xl">
-            Time's up! You didn't reach the treasure in time.
+            Time&apos;s up! You didn&apos;t reach the treasure in time.
           </p>
           <p className="mb-8 text-xl">
-            Coins collected: {currentPlayer?.coins || 0}
+            Coins collected: {currentPlayer?.coins ?? 0}
           </p>
           <button
             onClick={() => window.history.back()}
@@ -455,7 +322,7 @@ function GameContent() {
   }
 
   return (
-    <main className="relative h-screen w-screen overflow-hidden bg-gradient-to-b from-sky-300 via-sky-400 to-sky-500">
+    <main className="relative h-screen w-full overflow-hidden bg-gradient-to-b from-sky-400 to-sky-600">
       <div className="absolute inset-0 bg-gradient-to-b from-sky-300 via-sky-400 to-sky-500"></div>
 
       <div className="absolute right-0 bottom-0 left-0 h-32 bg-gradient-to-t from-slate-600 to-transparent"></div>
@@ -465,13 +332,13 @@ function GameContent() {
       <div className="absolute top-16 right-64 text-2xl text-white/25">☁️</div>
 
       <div className="absolute top-4 left-4 z-10 rounded-xl border border-white/20 bg-black/30 p-4 text-white backdrop-blur-sm">
-        <div className="mb-2 flex items-center gap-2 text-lg font-bold">
+        <div className="mb-2 flex items-center justify-center gap-2 text-lg font-bold">
           ⏰ Time: {formatTime(gameState.timeLeft)}
         </div>
-        <div className="mb-1 flex items-center gap-2 text-sm">
-          🪙 Coins: {currentPlayer?.coins || 0}
+        <div className="mb-1 flex items-center justify-center gap-2 text-sm">
+          🪙 Coins: {currentPlayer?.coins ?? 0}
         </div>
-        <div className="flex items-center gap-2 text-sm">
+        <div className="flex items-center justify-center gap-2 text-sm">
           👥 Players: {gameState.players.length}
         </div>
       </div>
@@ -482,21 +349,48 @@ function GameContent() {
         <div className="text-sm">Space or W to jump</div>
         <div className="text-sm">Collect coins and reach the treasure!</div>
         <div className="text-sm font-bold text-yellow-300">⏱️ 2 minutes!</div>
+
+        {/* Debug button for testing movement */}
+        {currentPlayer && (
+          <button
+            onClick={() => {
+              console.log("Debug: Moving character manually");
+              updatePlayerPosition.mutate({
+                roomId: roomId!,
+                playerId: currentPlayer.id,
+                x: currentPlayer.x + 100,
+                y: currentPlayer.y,
+                direction: "right",
+                isMoving: true,
+                isJumping: false,
+              });
+            }}
+            className="mt-2 w-full rounded bg-red-600 px-3 py-1 text-xs text-white hover:bg-red-700"
+          >
+            🧪 Test Move Right (Debug)
+          </button>
+        )}
       </div>
 
-      <div className="relative h-full w-full">
+      {/* Game canvas with proper dimensions */}
+      <div
+        className="relative h-full w-full"
+        style={{ minHeight: "800px", minWidth: "1200px" }}
+      >
         {gameState.platforms.map((platform) => (
           <div
             key={platform.id}
             className="absolute border-2 border-amber-900 bg-gradient-to-b from-amber-700 to-amber-800 shadow-lg"
             style={{
               left: platform.x,
-              top: platform.y,
+              top: 700 - platform.y, // Y=0 becomes top: 700 (bottom), Y=100 becomes top: 600
               width: platform.width,
               height: platform.height,
             }}
           >
-            <div className="h-full w-full bg-gradient-to-r from-amber-600 via-amber-700 to-amber-800 opacity-80"></div>
+            <div className="flex h-full w-full items-center justify-center">
+              <div className="text-xs text-amber-100">Platform</div>
+            </div>
           </div>
         ))}
 
@@ -504,7 +398,7 @@ function GameContent() {
           className="absolute animate-pulse cursor-pointer text-6xl drop-shadow-lg"
           style={{
             left: gameState.treasureChest.x - 30,
-            top: gameState.treasureChest.y - 30,
+            top: 700 - gameState.treasureChest.y, // Y=50 becomes top: 650
           }}
           title="Treasure Chest - Reach this to win!"
         >
@@ -519,7 +413,7 @@ function GameContent() {
                 className="absolute animate-bounce cursor-pointer text-4xl brightness-110 drop-shadow-lg filter"
                 style={{
                   left: coin.x - 20,
-                  top: coin.y - 20,
+                  top: 700 - coin.y,
                 }}
                 title="Collect me for points!"
               >
@@ -528,19 +422,60 @@ function GameContent() {
             ),
         )}
 
-        {gameState.players.map((player) => (
-          <GameCharacter
-            key={player.id}
-            player={player}
-            isCurrentPlayer={player.id === currentPlayer?.id}
-          />
-        ))}
+        {gameState.players
+          .filter(
+            (player): player is GamePlayer =>
+              player.x !== undefined &&
+              player.y !== undefined &&
+              player.coins !== undefined &&
+              player.direction !== undefined &&
+              player.isMoving !== undefined &&
+              player.isJumping !== undefined,
+          )
+          .map((player) => (
+            <GameCharacter
+              key={player.id}
+              player={player}
+              isCurrentPlayer={player.id === currentPlayer?.id}
+            />
+          ))}
+      </div>
 
-        <div className="absolute bottom-4 left-4 z-10 rounded-lg border border-white/20 bg-black/30 px-3 py-2 text-white backdrop-blur-sm">
-          <div className="text-sm font-bold">
-            Players in Game: {gameState.players.length}
-          </div>
+      <div className="absolute bottom-4 left-4 z-10 rounded-lg border border-white/20 bg-black/30 px-3 py-2 text-white backdrop-blur-sm">
+        <div className="text-sm font-bold">
+          Players in Game: {gameState.players.length}
         </div>
+        {/* Debug info */}
+        {currentPlayer && (
+          <div className="mt-2 text-xs text-yellow-300">
+            <div>
+              Your Pos: ({currentPlayer.x}, {currentPlayer.y})
+            </div>
+            <div>Direction: {currentPlayer.direction}</div>
+            <div>Moving: {currentPlayer.isMoving ? "Yes" : "No"}</div>
+          </div>
+        )}
+
+        {/* Debug movement test button */}
+        <button
+          onClick={() => {
+            if (currentPlayer && roomId) {
+              console.log("Testing movement for:", currentPlayer.character);
+              updatePlayerPosition.mutate({
+                roomId,
+                playerId: currentPlayer.id,
+                x: currentPlayer.x + 50,
+                y: currentPlayer.y,
+                direction: "right",
+                isMoving: true,
+                isJumping: false,
+              });
+            }
+          }}
+          className="mt-2 rounded bg-blue-500 px-2 py-1 text-xs text-white hover:bg-blue-600"
+        >
+          Test Move Right (Debug)
+        </button>
       </div>
     </main>
   );

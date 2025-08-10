@@ -10,14 +10,13 @@ export default function CreateRoom() {
   const [formData, setFormData] = useState({
     roomName: "",
     maxPlayers: "3",
-    hostGender: "male" as "male" | "female",
-    hostCharacter: "mickey" as string, // Add character selection
+    hostCharacter: "mickey" as string,
   });
 
   const createRoomMutation = api.room.createRoom.useMutation({
     onSuccess: (data) => {
       router.push(
-        `/lobby?roomId=${data.roomId}&roomName=${encodeURIComponent(data.roomName)}&maxPlayers=${data.maxPlayers}&hostName=${encodeURIComponent(data.hostName)}&hostId=${data.hostId}&playerId=${data.hostId}&isHost=true&hostGender=${data.hostGender}&hostCharacter=${data.hostCharacter}`,
+        `/lobby?roomId=${data.roomId}&roomName=${encodeURIComponent(data.roomName)}&maxPlayers=${data.maxPlayers}&hostName=${encodeURIComponent(data.hostName)}&hostId=${data.hostId}&playerId=${data.hostId}&isHost=true&hostCharacter=${data.hostCharacter}`,
       );
     },
     onError: (error) => {
@@ -33,16 +32,14 @@ export default function CreateRoom() {
       roomName: formData.roomName,
       maxPlayers: parseInt(formData.maxPlayers),
       hostName: formData.roomName, // Using room name as host name for now
-      hostGender: formData.hostGender,
-      hostCharacter: formData.hostCharacter, // Add character
+      hostCharacter: formData.hostCharacter,
     });
 
     createRoomMutation.mutate({
       roomName: formData.roomName,
       maxPlayers: parseInt(formData.maxPlayers),
       hostName: formData.roomName, // Using room name as host name for now
-      hostGender: formData.hostGender,
-      hostCharacter: formData.hostCharacter, // Add character
+      hostCharacter: formData.hostCharacter,
     });
   };
 
@@ -137,25 +134,6 @@ export default function CreateRoom() {
 
               <div>
                 <label
-                  htmlFor="hostGender"
-                  className="mb-2 block text-lg font-semibold text-amber-800"
-                >
-                  👤 Host Gender
-                </label>
-                <select
-                  id="hostGender"
-                  name="hostGender"
-                  value={formData.hostGender}
-                  onChange={handleInputChange}
-                  className="w-full rounded-lg border-2 border-amber-300 bg-amber-100/50 px-4 py-3 text-amber-900 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 focus:outline-none"
-                >
-                  <option value="male">Male Host</option>
-                  <option value="female">Female Host</option>
-                </select>
-              </div>
-
-              <div>
-                <label
                   htmlFor="hostCharacter"
                   className="mb-2 block text-lg font-semibold text-amber-800"
                 >
@@ -169,6 +147,12 @@ export default function CreateRoom() {
                   className="w-full rounded-lg border-2 border-amber-300 bg-amber-100/50 px-4 py-3 text-amber-900 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 focus:outline-none"
                 >
                   <option value="mickey">🐭 Mickey</option>
+                  <option value="minnie">🐭 Minnie</option>
+                  <option value="garfield">🐱 Garfield</option>
+                  <option value="phineas">🧑‍🦰 Phineas</option>
+                  <option value="tall">🧍 Tall</option>
+                  <option value="jerry">🐭 Jerry</option>
+                  <option value="dog">🐕 Dog</option>
                 </select>
               </div>
 

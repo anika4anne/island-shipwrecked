@@ -5,8 +5,13 @@ interface Player {
   id: string;
   name: string;
   isHost: boolean;
-  gender: "male" | "female";
-  character: string; // Add character field
+  character: string;
+  x?: number;
+  y?: number;
+  coins?: number;
+  direction?: "left" | "right";
+  isMoving?: boolean;
+  isJumping?: boolean;
 }
 
 interface Room {
@@ -16,6 +21,21 @@ interface Room {
   players: Player[];
   gameStarted: boolean;
   hostId: string;
+  gameState?: {
+    players: Player[];
+    coins: Array<{ id: string; x: number; y: number; collected: boolean }>;
+    platforms: Array<{
+      id: string;
+      x: number;
+      y: number;
+      width: number;
+      height: number;
+    }>;
+    treasureChest: { x: number; y: number };
+    timeLeft: number;
+    gameWon: boolean;
+    gameLost: boolean;
+  };
 }
 
 class RoomManager {
@@ -27,8 +47,7 @@ class RoomManager {
     maxPlayers: number,
     hostId: string,
     hostName: string,
-    hostGender: "male" | "female",
-    hostCharacter: string, // Add character parameter
+    hostCharacter: string,
   ): Room {
     const room: Room = {
       id: roomId,
@@ -39,8 +58,7 @@ class RoomManager {
           id: hostId,
           name: hostName,
           isHost: true,
-          gender: hostGender, // Default gender for host
-          character: hostCharacter, // Use provided character
+          character: hostCharacter,
         },
       ],
       gameStarted: false,
@@ -92,6 +110,148 @@ class RoomManager {
       return false;
     }
     room.gameStarted = true;
+
+    const initialPlayers = room.players.map((player, index) => ({
+      ...player,
+      x: 150 + index * 120,
+      y: 100, // Position players near the bottom
+      coins: 0,
+      direction: "right" as const,
+      isMoving: false,
+      isJumping: false,
+    }));
+
+    const platforms = [
+      { id: "ground", x: 0, y: 900, width: 1200, height: 100 },
+      { id: "platform1", x: 100, y: 400, width: 150, height: 25 }, // Move platforms down
+      { id: "platform2", x: 300, y: 300, width: 150, height: 25 },
+      { id: "platform3", x: 500, y: 200, width: 150, height: 25 },
+      { id: "platform4", x: 950, y: 400, width: 150, height: 25 },
+      { id: "platform5", x: 950, y: 300, width: 150, height: 25 },
+      { id: "platform6", x: 950, y: 200, width: 150, height: 25 },
+      { id: "platform7", x: 525, y: 750, width: 150, height: 25 },
+      { id: "platform8", x: 525, y: 650, width: 150, height: 25 },
+    ];
+
+    const coins = [
+      { id: "coin1", x: 150, y: 350, collected: false }, // Move coins down
+      { id: "coin2", x: 300, y: 350, collected: false },
+      { id: "coin3", x: 1000, y: 350, collected: false },
+      { id: "coin4", x: 1000, y: 250, collected: false },
+      { id: "coin5", x: 1000, y: 150, collected: false },
+      { id: "coin-7", x: 600, y: 725, collected: false },
+      { id: "coin-8", x: 600, y: 625, collected: false },
+      { id: "coin-9", x: 200, y: 850, collected: false },
+      { id: "coin-10", x: 1000, y: 850, collected: false },
+    ];
+
+    room.gameState = {
+      players: initialPlayers,
+      coins: [
+        { id: "coin1", x: 150, y: 50, collected: false }, // Position coins above platforms
+        { id: "coin2", x: 300, y: 50, collected: false },
+        { id: "coin3", x: 1000, y: 50, collected: false },
+        { id: "coin4", x: 1000, y: 150, collected: false },
+        { id: "coin5", x: 1000, y: 250, collected: false },
+      ],
+      platforms: [
+        { id: "platform1", x: 100, y: 0, width: 150, height: 25 }, // Position platforms at bottom
+        { id: "platform2", x: 300, y: 0, width: 150, height: 25 },
+        { id: "platform3", x: 500, y: 0, width: 150, height: 25 },
+        { id: "platform4", x: 950, y: 0, width: 150, height: 25 },
+        { id: "platform5", x: 950, y: 100, width: 150, height: 25 },
+        { id: "platform6", x: 950, y: 200, width: 150, height: 25 },
+      ],
+      treasureChest: { x: 600, y: 50 }, // Position treasure chest above platforms
+      timeLeft: 120,
+      gameWon: false,
+      gameLost: false,
+    };
+
+    return true;
+  }
+
+  updatePlayerPosition(
+    roomId: string,
+    playerId: string,
+    x: number,
+    y: number,
+    direction: "left" | "right",
+    isMoving: boolean,
+    isJumping: boolean,
+  ): boolean {
+    const room = this.rooms.get(roomId);
+    if (!room?.gameState) return false;
+
+    const player = room.gameState.players.find((p) => p.id === playerId);
+    if (!player) return false;
+
+    console.log(
+      `Server: Updating player ${playerId} position from (${player.x}, ${player.y}) to (${x}, ${y})`,
+    );
+
+    player.x = x;
+    player.y = y;
+    player.direction = direction;
+    player.isMoving = isMoving;
+    player.isJumping = isJumping;
+
+    console.log(
+      `Server: Player ${playerId} new position: (${player.x}, ${player.y})`,
+    );
+
+    return true;
+  }
+
+  collectCoin(roomId: string, coinId: string, playerId: string): boolean {
+    const room = this.rooms.get(roomId);
+    if (!room?.gameState) return false;
+
+    const coin = room.gameState.coins.find((c) => c.id === coinId);
+    if (!coin || coin.collected) return false;
+
+    coin.collected = true;
+
+    const player = room.gameState.players.find((p) => p.id === playerId);
+    if (player) {
+      player.coins = (player.coins ?? 0) + 1;
+    }
+
+    return true;
+  }
+
+  checkTreasureWin(roomId: string, playerId: string): boolean {
+    const room = this.rooms.get(roomId);
+    if (!room?.gameState) return false;
+
+    const player = room.gameState.players.find((p) => p.id === playerId);
+    if (!player) return false;
+
+    const treasure = room.gameState.treasureChest;
+    const distance = Math.sqrt(
+      Math.pow((player.x ?? 0) - treasure.x, 2) +
+        Math.pow((player.y ?? 0) - treasure.y, 2),
+    );
+
+    if (distance < 50) {
+      room.gameState.gameWon = true;
+      return true;
+    }
+
+    return false;
+  }
+
+  updateGameTime(roomId: string): boolean {
+    const room = this.rooms.get(roomId);
+    if (!room?.gameState) return false;
+
+    if (room.gameState.timeLeft > 0) {
+      room.gameState.timeLeft -= 1;
+      if (room.gameState.timeLeft <= 0) {
+        room.gameState.gameLost = true;
+      }
+    }
+
     return true;
   }
 
@@ -122,7 +282,6 @@ export const roomRouter = createTRPCRouter({
         roomName: z.string().min(1),
         maxPlayers: z.number().min(2).max(6),
         hostName: z.string().min(1),
-        hostGender: z.enum(["male", "female"]),
         hostCharacter: z.string(), // Add character parameter
       }),
     )
@@ -140,8 +299,7 @@ export const roomRouter = createTRPCRouter({
         input.maxPlayers,
         hostId,
         input.hostName,
-        input.hostGender,
-        input.hostCharacter, // Pass character to createRoom
+        input.hostCharacter,
       );
 
       console.log("Created room:", room);
@@ -153,8 +311,7 @@ export const roomRouter = createTRPCRouter({
         maxPlayers: input.maxPlayers,
         hostName: input.hostName,
         hostId,
-        hostGender: input.hostGender,
-        hostCharacter: input.hostCharacter, // Return character in response
+        hostCharacter: input.hostCharacter,
       };
     }),
 
@@ -178,7 +335,6 @@ export const roomRouter = createTRPCRouter({
       z.object({
         roomId: z.string(),
         playerName: z.string().min(1),
-        playerGender: z.enum(["male", "female"]),
         playerCharacter: z.string(), // Add character parameter
       }),
     )
@@ -204,7 +360,6 @@ export const roomRouter = createTRPCRouter({
         id: playerId,
         name: input.playerName,
         isHost: false,
-        gender: input.playerGender,
         character: input.playerCharacter, // Use provided character
       };
 
@@ -255,29 +410,6 @@ export const roomRouter = createTRPCRouter({
       return { success: true };
     }),
 
-  updatePlayerGender: publicProcedure
-    .input(
-      z.object({
-        roomId: z.string(),
-        playerId: z.string(),
-        gender: z.enum(["male", "female"]),
-      }),
-    )
-    .mutation(async ({ input }) => {
-      const room = roomManager.getRoom(input.roomId);
-      if (!room) {
-        throw new Error("Room not found");
-      }
-
-      const player = room.players.find((p) => p.id === input.playerId);
-      if (!player) {
-        throw new Error("Player not found");
-      }
-
-      player.gender = input.gender;
-      return { success: true };
-    }),
-
   updatePlayerCharacter: publicProcedure
     .input(
       z.object({
@@ -299,6 +431,74 @@ export const roomRouter = createTRPCRouter({
 
       player.character = input.character;
       return { success: true };
+    }),
+
+  updatePlayerPosition: publicProcedure
+    .input(
+      z.object({
+        roomId: z.string(),
+        playerId: z.string(),
+        x: z.number(),
+        y: z.number(),
+        direction: z.enum(["left", "right"]),
+        isMoving: z.boolean(),
+        isJumping: z.boolean(),
+      }),
+    )
+    .mutation(async ({ input }) => {
+      const success = roomManager.updatePlayerPosition(
+        input.roomId,
+        input.playerId,
+        input.x,
+        input.y,
+        input.direction,
+        input.isMoving,
+        input.isJumping,
+      );
+      return { success };
+    }),
+
+  collectCoin: publicProcedure
+    .input(
+      z.object({
+        roomId: z.string(),
+        coinId: z.string(),
+        playerId: z.string(),
+      }),
+    )
+    .mutation(async ({ input }) => {
+      const success = roomManager.collectCoin(
+        input.roomId,
+        input.coinId,
+        input.playerId,
+      );
+      return { success };
+    }),
+
+  checkTreasureWin: publicProcedure
+    .input(
+      z.object({
+        roomId: z.string(),
+        playerId: z.string(),
+      }),
+    )
+    .mutation(async ({ input }) => {
+      const success = roomManager.checkTreasureWin(
+        input.roomId,
+        input.playerId,
+      );
+      return { success };
+    }),
+
+  updateGameTime: publicProcedure
+    .input(
+      z.object({
+        roomId: z.string(),
+      }),
+    )
+    .mutation(async ({ input }) => {
+      const success = roomManager.updateGameTime(input.roomId);
+      return { success };
     }),
 });
 

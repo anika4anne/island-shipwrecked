@@ -43,7 +43,15 @@ function CharacterSelector({
     }
   };
 
-  const characters = [{ id: "mickey", name: "Mickey", icon: "🐭" }];
+  const characters = [
+    { id: "mickey", name: "Mickey", icon: "🐭" },
+    { id: "minnie", name: "Minnie", icon: "🐭" },
+    { id: "garfield", name: "Garfield", icon: "🐱" },
+    { id: "phineas", name: "Phineas", icon: "🧑‍🦰" },
+    { id: "tall", name: "Tall", icon: "🧍" },
+    { id: "jerry", name: "Jerry", icon: "🐭" },
+    { id: "dog", name: "Dog", icon: "🐕" },
+  ];
 
   return (
     <div className="flex items-center gap-3">
@@ -115,7 +123,12 @@ function LobbyContent() {
   const currentIsHost = room?.hostId === playerId || isHost;
   const playerCount = room?.players.length ?? 0;
 
-  const handleCharacterUpdate = (playerId: string, newCharacter: string) => {};
+  const handleCharacterUpdate = (_playerId: string, _newCharacter: string) => {
+    console.log("Character update requested:", {
+      playerId: _playerId,
+      character: _newCharacter,
+    });
+  };
 
   useEffect(() => {
     if (room?.gameStarted) {
@@ -290,16 +303,16 @@ function LobbyContent() {
                   </div>
                   <CharacterSelector
                     currentCharacter={
-                      room.players.find((p) => p.isHost)?.character || "mickey"
+                      room.players.find((p) => p.isHost)?.character ?? "mickey"
                     }
                     onCharacterChange={(character) =>
                       handleCharacterUpdate(
-                        room.players.find((p) => p.isHost)?.id || "",
+                        room.players.find((p) => p.isHost)?.id ?? "",
                         character,
                       )
                     }
-                    playerId={room.players.find((p) => p.isHost)?.id || ""}
-                    roomId={roomId || ""}
+                    playerId={room.players.find((p) => p.isHost)?.id ?? ""}
+                    roomId={roomId ?? ""}
                     isCurrentPlayer={
                       room.players.find((p) => p.isHost)?.id === playerId
                     }
@@ -326,12 +339,12 @@ function LobbyContent() {
                       </p>
                     </div>
                     <CharacterSelector
-                      currentCharacter={player.character || "mickey"}
+                      currentCharacter={player.character ?? "mickey"}
                       onCharacterChange={(character) =>
                         handleCharacterUpdate(player.id, character)
                       }
                       playerId={player.id}
-                      roomId={roomId || ""}
+                      roomId={roomId ?? ""}
                       isCurrentPlayer={player.id === playerId}
                     />
                   </div>
@@ -389,9 +402,6 @@ function LobbyContent() {
                     {copied ? "✅ Copied!" : "📋 Copy Code"}
                   </button>
                 </div>
-                <p className="mt-2 text-sm text-amber-600">
-                  Players can join using this code
-                </p>
               </div>
             </div>
           </div>

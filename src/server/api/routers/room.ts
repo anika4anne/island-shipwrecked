@@ -6,6 +6,7 @@ interface Player {
   name: string;
   isHost: boolean;
   gender: "male" | "female";
+  character: string; // Add character field
 }
 
 interface Room {
@@ -27,6 +28,7 @@ class RoomManager {
     hostId: string,
     hostName: string,
     hostGender: "male" | "female",
+    hostCharacter: string, // Add character parameter
   ): Room {
     const room: Room = {
       id: roomId,
@@ -38,6 +40,7 @@ class RoomManager {
           name: hostName,
           isHost: true,
           gender: hostGender, // Default gender for host
+          character: hostCharacter, // Use provided character
         },
       ],
       gameStarted: false,
@@ -120,6 +123,7 @@ export const roomRouter = createTRPCRouter({
         maxPlayers: z.number().min(2).max(6),
         hostName: z.string().min(1),
         hostGender: z.enum(["male", "female"]),
+        hostCharacter: z.string(), // Add character parameter
       }),
     )
     .mutation(async ({ input }) => {
@@ -137,6 +141,7 @@ export const roomRouter = createTRPCRouter({
         hostId,
         input.hostName,
         input.hostGender,
+        input.hostCharacter, // Pass character to createRoom
       );
 
       console.log("Created room:", room);
@@ -149,6 +154,7 @@ export const roomRouter = createTRPCRouter({
         hostName: input.hostName,
         hostId,
         hostGender: input.hostGender,
+        hostCharacter: input.hostCharacter, // Return character in response
       };
     }),
 
@@ -173,6 +179,7 @@ export const roomRouter = createTRPCRouter({
         roomId: z.string(),
         playerName: z.string().min(1),
         playerGender: z.enum(["male", "female"]),
+        playerCharacter: z.string(), // Add character parameter
       }),
     )
     .mutation(async ({ input }) => {
@@ -198,6 +205,7 @@ export const roomRouter = createTRPCRouter({
         name: input.playerName,
         isHost: false,
         gender: input.playerGender,
+        character: input.playerCharacter, // Use provided character
       };
 
       if (roomManager.addPlayerToRoom(input.roomId, player)) {
@@ -267,6 +275,29 @@ export const roomRouter = createTRPCRouter({
       }
 
       player.gender = input.gender;
+      return { success: true };
+    }),
+
+  updatePlayerCharacter: publicProcedure
+    .input(
+      z.object({
+        roomId: z.string(),
+        playerId: z.string(),
+        character: z.string(),
+      }),
+    )
+    .mutation(async ({ input }) => {
+      const room = roomManager.getRoom(input.roomId);
+      if (!room) {
+        throw new Error("Room not found");
+      }
+
+      const player = room.players.find((p) => p.id === input.playerId);
+      if (!player) {
+        throw new Error("Player not found");
+      }
+
+      player.character = input.character;
       return { success: true };
     }),
 });

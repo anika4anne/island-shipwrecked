@@ -5,6 +5,74 @@ import { useSearchParams } from "next/navigation";
 import { useState, useEffect, Suspense } from "react";
 import { api } from "~/trpc/react";
 
+function CharacterSelector({
+  currentCharacter,
+  onCharacterChange,
+  playerId,
+  roomId,
+  isCurrentPlayer,
+}: {
+  currentCharacter: string;
+  onCharacterChange: (character: string) => void;
+  playerId: string;
+  roomId: string;
+  isCurrentPlayer: boolean;
+}) {
+  const [selectedCharacter, setSelectedCharacter] = useState(currentCharacter);
+  const [isSaving, setIsSaving] = useState(false);
+
+  const updateCharacterMutation = api.room.updatePlayerCharacter.useMutation({
+    onSuccess: () => {
+      setIsSaving(false);
+      onCharacterChange(selectedCharacter);
+    },
+    onError: (error) => {
+      alert(`Failed to update character: ${error.message}`);
+      setIsSaving(false);
+    },
+  });
+
+  const handleSave = () => {
+    if (selectedCharacter !== currentCharacter) {
+      setIsSaving(true);
+      updateCharacterMutation.mutate({
+        roomId,
+        playerId,
+        character: selectedCharacter,
+      });
+    }
+  };
+
+  const characters = [{ id: "mickey", name: "Mickey", icon: "🐭" }];
+
+  return (
+    <div className="flex items-center gap-3">
+      <select
+        value={selectedCharacter}
+        onChange={(e) => setSelectedCharacter(e.target.value)}
+        disabled={!isCurrentPlayer || isSaving}
+        className="rounded-lg border border-amber-300 bg-amber-100 px-3 py-1 text-sm font-medium text-amber-900 disabled:opacity-50"
+      >
+        {characters.map((char) => (
+          <option key={char.id} value={char.id}>
+            {char.icon} {char.name}
+          </option>
+        ))}
+      </select>
+
+      {isCurrentPlayer && selectedCharacter !== currentCharacter && (
+        <button
+          onClick={handleSave}
+          disabled={isSaving}
+          className="rounded-lg bg-green-600 px-3 py-1 text-xs font-medium text-white hover:bg-green-700 disabled:opacity-50"
+        >
+          {isSaving ? "Saving..." : "Save"}
+        </button>
+      )}
+    </div>
+  );
+}
+
 function LobbyContent() {
   const [copied, setCopied] = useState(false);
   const [showCountdown, setShowCountdown] = useState(false);
@@ -46,6 +114,8 @@ function LobbyContent() {
 
   const currentIsHost = room?.hostId === playerId || isHost;
   const playerCount = room?.players.length ?? 0;
+
+  const handleCharacterUpdate = (playerId: string, newCharacter: string) => {};
 
   useEffect(() => {
     if (room?.gameStarted) {
@@ -218,6 +288,22 @@ function LobbyContent() {
                         : "Ready to begin the search"}
                     </p>
                   </div>
+                  <CharacterSelector
+                    currentCharacter={
+                      room.players.find((p) => p.isHost)?.character || "mickey"
+                    }
+                    onCharacterChange={(character) =>
+                      handleCharacterUpdate(
+                        room.players.find((p) => p.isHost)?.id || "",
+                        character,
+                      )
+                    }
+                    playerId={room.players.find((p) => p.isHost)?.id || ""}
+                    roomId={roomId || ""}
+                    isCurrentPlayer={
+                      room.players.find((p) => p.isHost)?.id === playerId
+                    }
+                  />
                 </div>
               )}
 
@@ -239,6 +325,15 @@ function LobbyContent() {
                           : "Ready to begin the search"}
                       </p>
                     </div>
+                    <CharacterSelector
+                      currentCharacter={player.character || "mickey"}
+                      onCharacterChange={(character) =>
+                        handleCharacterUpdate(player.id, character)
+                      }
+                      playerId={player.id}
+                      roomId={roomId || ""}
+                      isCurrentPlayer={player.id === playerId}
+                    />
                   </div>
                 ))}
 

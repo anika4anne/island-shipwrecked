@@ -11,13 +11,14 @@ export default function JoinRoom() {
     roomCode: "",
     playerName: "",
     playerGender: "male" as "male" | "female",
+    playerCharacter: "mickey" as string, // Add character selection
   });
 
   const joinRoomMutation = api.room.joinRoom.useMutation({
     onSuccess: (data) => {
       if (data.room) {
         router.push(
-          `/lobby?roomId=${formData.roomCode}&roomName=${encodeURIComponent(data.room.name)}&maxPlayers=${data.room.maxPlayers}&hostName=${encodeURIComponent(data.room.players[0]?.name ?? "")}&playerId=${data.playerId}&isHost=false`,
+          `/lobby?roomId=${formData.roomCode}&roomName=${encodeURIComponent(data.room.name)}&maxPlayers=${data.room.maxPlayers}&hostName=${encodeURIComponent(data.room.players[0]?.name ?? "")}&playerId=${data.playerId}&isHost=false&playerCharacter=${formData.playerCharacter}`,
         );
       }
     },
@@ -33,12 +34,15 @@ export default function JoinRoom() {
     console.log("Calling joinRoomMutation.mutate with:", {
       roomId: formData.roomCode,
       playerName: formData.playerName,
+      playerGender: formData.playerGender,
+      playerCharacter: formData.playerCharacter, // Add character
     });
 
     joinRoomMutation.mutate({
       roomId: formData.roomCode,
       playerName: formData.playerName,
       playerGender: formData.playerGender,
+      playerCharacter: formData.playerCharacter, // Add character
     });
   };
 
@@ -134,6 +138,30 @@ export default function JoinRoom() {
                 >
                   <option value="male">Male</option>
                   <option value="female">Female</option>
+                </select>
+              </div>
+
+              <div>
+                <label
+                  htmlFor="playerCharacter"
+                  className="mb-2 block text-lg font-semibold text-amber-900"
+                >
+                  🎭 Choose Your Character
+                </label>
+                <select
+                  id="playerCharacter"
+                  name="playerCharacter"
+                  value={formData.playerCharacter}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      playerCharacter: e.target.value,
+                    })
+                  }
+                  className="w-full rounded-lg border-2 border-amber-300 bg-amber-100 px-4 py-3 text-lg font-semibold text-amber-900 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 focus:outline-none"
+                >
+                  <option value="mickey">🐭 Mickey</option>
+                  {/* Add more characters here as you create them */}
                 </select>
               </div>
 
